@@ -20,6 +20,27 @@
  */
 package net.sourceforge.metrics.properties;
 
+import org.eclipse.core.resources.IProject;
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.QualifiedName;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.IPackageFragmentRoot;
+import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Tree;
+import org.eclipse.swt.widgets.TreeColumn;
+import org.eclipse.swt.widgets.TreeItem;
+import org.eclipse.ui.dialogs.PropertyPage;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,30 +53,9 @@ import net.sourceforge.metrics.core.Log;
 import net.sourceforge.metrics.core.MetricDescriptor;
 import net.sourceforge.metrics.core.MetricsPlugin;
 
-import org.eclipse.core.resources.IProject;
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.QualifiedName;
-import org.eclipse.jdt.core.IJavaProject;
-import org.eclipse.jdt.core.IPackageFragmentRoot;
-import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.TableTree;
-import org.eclipse.swt.custom.TableTreeItem;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.TableColumn;
-import org.eclipse.ui.dialogs.PropertyPage;
-
 /**
  * Allow metrics enablement/disablement from a project's property page
- * 
+ *
  * @author Frank Sauer
  */
 public class MetricsPropertyPage extends PropertyPage implements Constants {
@@ -98,7 +98,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 	}
 
 	private IProject getProject() {
-		return (IProject) this.getElement().getAdapter(IProject.class);
+		return this.getElement().getAdapter(IProject.class);
 	}
 
 	@Override
@@ -109,7 +109,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 	public boolean performOk() {
 		try {
 			boolean checked = check.getSelection();
-			IProject p = (IProject) this.getElement().getAdapter(IProject.class);
+			IProject p = this.getElement().getAdapter(IProject.class);
 			boolean hasNature = p.hasNature(PLUGIN_ID + ".nature");
 			if (checked && !hasNature) {
 				MetricsNature.addNatureToProject(p, null);
@@ -125,7 +125,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.eclipse.jface.preference.PreferencePage#contributeButtons(org.eclipse .swt.widgets.Composite)
 	 */
 	@Override
@@ -135,7 +135,8 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 		addPattern.setText("Add Exclusion Filter(s)...");
 		addPattern.addSelectionListener(new SelectionListener() {
 
-			public void widgetSelected(SelectionEvent e) {
+			@Override
+            public void widgetSelected(SelectionEvent e) {
 				MetricDescriptor md = (MetricDescriptor) table.getSelection()[0].getData("md");
 				String[] patterns = (String[]) table.getSelection()[0].getData("patterns");
 				ExclusionPatternDialog d = new ExclusionPatternDialog(getShell(), md, patterns);
@@ -145,27 +146,28 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 				}
 			}
 
-			public void widgetDefaultSelected(SelectionEvent e) {
+			@Override
+            public void widgetDefaultSelected(SelectionEvent e) {
 			}
 		});
 		addPattern.setEnabled(false);
 	}
 
-	class EnableMetricsTable extends TableTree implements SelectionListener {
+	class EnableMetricsTable extends Tree implements SelectionListener {
 
-		private TableColumn exPatterns;
-		private TableColumn description;
+		private TreeColumn exPatterns;
+		private TreeColumn description;
 		private IProject project = null;
-		private Map<String, TableTreeItem> rowLookup = new HashMap<String, TableTreeItem>();
+		private Map<String, TreeItem> rowLookup = new HashMap<String, TreeItem>();
 
 		public EnableMetricsTable(IProject p, Composite parent, int style) {
 			super(parent, style);
-			getTable().setLinesVisible(true);
-			getTable().setHeaderVisible(true);
-			description = new TableColumn(getTable(), SWT.LEFT);
+			this.setLinesVisible(true);
+			this.setHeaderVisible(true);
+			description = new TreeColumn(this, SWT.LEFT);
 			description.setText("Metric");
 			description.setWidth(250);
-			exPatterns = new TableColumn(getTable(), SWT.LEFT);
+			exPatterns = new TreeColumn(this, SWT.LEFT);
 			exPatterns.setText("Exclusion Filters");
 			exPatterns.setWidth(250);
 			addSelectionListener(this);
@@ -175,20 +177,20 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/**
 		 * Write all state to persistent properties in the given project
-		 * 
+		 *
 		 * @param p
 		 */
 		public void persistState() {
-			TableTreeItem[] items = getItems();
-			for (TableTreeItem item : items) {
+			TreeItem[] items = getItems();
+			for (TreeItem item : items) {
 				String id = (String) item.getData("id");
 				String val = (item.getChecked()) ? "true" : "false";
 				String mPatterns = item.getText(1);
 				try {
 					project.setPersistentProperty(new QualifiedName(Constants.PLUGIN_ID, id + ".enabled"), val);
 					project.setPersistentProperty(new QualifiedName(Constants.PLUGIN_ID, id + ".patterns"), mPatterns);
-					TableTreeItem[] folders = item.getItems();
-					for (TableTreeItem folder : folders) {
+					TreeItem[] folders = item.getItems();
+					for (TreeItem folder : folders) {
 						IPackageFragmentRoot f = (IPackageFragmentRoot) folder.getData("element");
 						String handle = f.getHandleIdentifier();
 						String fVal = (folder.getChecked()) ? "true" : "false";
@@ -202,8 +204,8 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 			}
 		}
 
-		private TableTreeItem createNewRow(MetricDescriptor md, IPackageFragmentRoot[] roots) {
-			TableTreeItem item = new TableTreeItem(this, SWT.NONE);
+		private TreeItem createNewRow(MetricDescriptor md, IPackageFragmentRoot[] roots) {
+			TreeItem item = new TreeItem(this, SWT.NONE);
 			item.setText(0, md.getName() + " (" + md.getId() + ")");
 			item.setData("id", md.getId());
 			item.setData("md", md);
@@ -213,7 +215,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 			item.setText(1, concat(patterns));
 			rowLookup.put(md.getId(), item);
 			for (IPackageFragmentRoot root : roots) {
-				TableTreeItem next = new TableTreeItem(item, SWT.NONE);
+				TreeItem next = new TreeItem(item, SWT.NONE);
 				next.setText(0, root.getElementName());
 				next.setData("id", md.getId());
 				next.setData("element", root);
@@ -229,7 +231,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/**
 		 * Get the stored exclusion patterns for the given metric
-		 * 
+		 *
 		 * @param id
 		 *            metric-id
 		 */
@@ -239,7 +241,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/**
 		 * Get the stored exclusion patterns for the given metric and source folder
-		 * 
+		 *
 		 * @param id
 		 *            metric-id
 		 */
@@ -266,7 +268,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/**
 		 * Checks persisted project property
-		 * 
+		 *
 		 * @param id
 		 *            metric to be checked
 		 * @param folder
@@ -293,7 +295,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/**
 		 * Checks persisted project property
-		 * 
+		 *
 		 * @param id
 		 * @return true if project properties indicate it is enabled or if such property does not exist
 		 */
@@ -323,7 +325,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 				}
 			}
 			// gray those that cannot be enabled
-			TableTreeItem[] items = getItems();
+			TreeItem[] items = getItems();
 			for (int i = 0; i < items.length; i++) {
 				if (!allowEnable(items[i])) {
 					items[i].setGrayed(true);
@@ -333,7 +335,7 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/**
 		 * Get the source folder for the project
-		 * 
+		 *
 		 * @param project
 		 */
 		private IPackageFragmentRoot[] getPackageFragmentRoots(IProject project) {
@@ -353,17 +355,18 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/*
 		 * (non-Javadoc) react to check/uncheck events and check/uncheck and gray/ungray children and dependent metrics
-		 * 
+		 *
 		 * @see org.eclipse.swt.events.SelectionListener#widgetSelected(org.eclipse .swt.events.SelectionEvent)
 		 */
-		public void widgetSelected(SelectionEvent e) {
-			TableTreeItem item = (TableTreeItem) e.item;
+		@Override
+        public void widgetSelected(SelectionEvent e) {
+			TreeItem item = (TreeItem) e.item;
 			if (item != null) {
 				boolean checked = item.getChecked();
 				if (e.detail == 32) {
 					// check to see if metric can be enabled and undo check if
 					// it can't
-					TableTreeItem parent = item.getParentItem();
+					TreeItem parent = item.getParentItem();
 					if (parent == null) {
 						if (checked) {
 							if (allowEnable(item)) {
@@ -391,16 +394,16 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/**
 		 * enable/disable an item, its children and dependents elsewhere
-		 * 
+		 *
 		 * @param item
 		 * @param enable
 		 * @param gray
 		 */
-		private void enableItem(TableTreeItem item, boolean enable, boolean gray) {
+		private void enableItem(TreeItem item, boolean enable, boolean gray) {
 			item.setChecked(enable);
 			item.setGrayed(gray);
-			TableTreeItem[] children = item.getItems();
-			for (TableTreeItem element2 : children) {
+			TreeItem[] children = item.getItems();
+			for (TreeItem element2 : children) {
 				element2.setChecked(enable);
 				element2.setGrayed(!enable);
 			}
@@ -409,17 +412,17 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/**
 		 * enable/disable all metrics that depend on the given metric
-		 * 
+		 *
 		 * @param descriptor
 		 * @param enable
 		 */
 		private void enableDependentMetrics(MetricDescriptor descriptor, boolean enable) {
 			MetricsPlugin plugin = MetricsPlugin.getDefault();
 			String[] dependents = plugin.getDependentMetrics(descriptor);
-			TableTreeItem[] items = getItems();
+			TreeItem[] items = getItems();
 			if (dependents != null && dependents.length > 0) {
 				for (String dependent : dependents) {
-					for (TableTreeItem item : items) {
+					for (TreeItem item : items) {
 						String id = (String) item.getData("id");
 						if (id.equals(dependent)) {
 							if (!enable) { // simply disable
@@ -438,19 +441,19 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/**
 		 * Check to see that all required metrics for item are met.
-		 * 
+		 *
 		 * @param item
 		 *            item to be checked
 		 * @param j
 		 *            index of metric to check
 		 * @return true if all required metrics of given metric are checked
 		 */
-		private boolean allowEnable(TableTreeItem item) {
+		private boolean allowEnable(TreeItem item) {
 			MetricDescriptor md = (MetricDescriptor) item.getData("md");
 			String[] requires = md.getRequiredMetricIds();
 			if (requires != null && requires.length > 0) {
 				for (String require : requires) {
-					TableTreeItem reqItem = rowLookup.get(require);
+					TreeItem reqItem = rowLookup.get(require);
 					if (!reqItem.getChecked()) {
 						return false;
 					}
@@ -461,10 +464,11 @@ public class MetricsPropertyPage extends PropertyPage implements Constants {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see org.eclipse.swt.events.SelectionListener#widgetDefaultSelected(org .eclipse.swt.events.SelectionEvent)
 		 */
-		public void widgetDefaultSelected(SelectionEvent e) {
+		@Override
+        public void widgetDefaultSelected(SelectionEvent e) {
 		}
 	}
 

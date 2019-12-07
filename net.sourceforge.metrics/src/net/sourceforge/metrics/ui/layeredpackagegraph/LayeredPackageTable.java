@@ -14,6 +14,27 @@
  */
 package net.sourceforge.metrics.ui.layeredpackagegraph;
 
+import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.IMember;
+import org.eclipse.jdt.core.JavaCore;
+import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.ui.JavaUI;
+import org.eclipse.jface.preference.PreferenceConverter;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.events.TreeEvent;
+import org.eclipse.swt.events.TreeListener;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.RGB;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Tree;
+import org.eclipse.swt.widgets.TreeColumn;
+import org.eclipse.swt.widgets.TreeItem;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IMemento;
+import org.eclipse.ui.PartInitException;
+
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,52 +57,31 @@ import net.sourceforge.metrics.core.MetricsPlugin;
 import net.sourceforge.metrics.core.sources.AbstractMetricSource;
 import net.sourceforge.metrics.core.sources.IGraphContributor;
 
-import org.eclipse.jdt.core.IJavaElement;
-import org.eclipse.jdt.core.IMember;
-import org.eclipse.jdt.core.JavaCore;
-import org.eclipse.jdt.core.JavaModelException;
-import org.eclipse.jdt.ui.JavaUI;
-import org.eclipse.jface.preference.PreferenceConverter;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.TableTree;
-import org.eclipse.swt.custom.TableTreeItem;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.events.TreeEvent;
-import org.eclipse.swt.events.TreeListener;
-import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.RGB;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.TableColumn;
-import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IMemento;
-import org.eclipse.ui.PartInitException;
-
 /**
- * TableTree specialized for metrics display. Specializations include lazy child creation and child sorting in descending metric value
- * 
+ * Tree specialized for metrics display. Specializations include lazy child creation and child sorting in descending metric value
+ *
  * @author Frank Sauer
  */
-public class LayeredPackageTable extends TableTree implements Constants, SelectionListener, TreeListener {
+public class LayeredPackageTable extends Tree implements Constants, SelectionListener, TreeListener {
 	private Color lastDefaultColor;
 	private Color lastInRangeColor;
 	private Color lastOutofRangeColor;
-	private TableColumn layer;
-	private TableColumn value;
-	private TableColumn dependencies;
+	private TreeColumn layer;
+	private TreeColumn value;
+	private TreeColumn dependencies;
 	private Map<String, Set<String>> deps;
 	private static List<Set<PackageStats>> layers;
 	private static Set<PackageStats> external;
 
 	public LayeredPackageTable(Composite parent, int style) {
 		super(parent, style);
-		getTable().setLinesVisible(true);
-		getTable().setHeaderVisible(true);
-		layer = new TableColumn(getTable(), SWT.RIGHT);
+		this.setLinesVisible(true);
+		this.setHeaderVisible(true);
+		layer = new TreeColumn(this, SWT.RIGHT);
 		layer.setText("Layer");
-		value = new TableColumn(getTable(), SWT.LEFT);
+		value = new TreeColumn(this, SWT.LEFT);
 		value.setText("Package");
-		dependencies = new TableColumn(getTable(), SWT.LEFT);
+		dependencies = new TreeColumn(this, SWT.LEFT);
 		dependencies.setText("Dependent Packages");
 		addSelectionListener(this);
 		addTreeListener(this);
@@ -111,14 +111,14 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 	}
 
 	private void displayExternalPackages(Set<PackageStats> external) {
-		TableTreeItem divider = createNewRow();
+		TreeItem divider = createNewRow();
 		divider.setText(0, "EXTERNAL");
 		divider.setText(1, "");
 		divider.setText(2, "");
 
 		for (Iterator<PackageStats> j = external.iterator(); j.hasNext();) {
 			String packageName =  j.next().getPackageName();
-			TableTreeItem row = createNewRow();
+			TreeItem row = createNewRow();
 			row.setText(0, "0");
 			row.setText(1, packageName);
 			row.setText(2, "");
@@ -134,7 +134,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 			Set<PackageStats> packageSet = packages.get(i);
 			for (Iterator<PackageStats> j = packageSet.iterator(); j.hasNext();) {
 				PackageStats packageStats = j.next();
-				TableTreeItem row = createNewRow();
+				TreeItem row = createNewRow();
 				if (packageStats.isTangle()) {
 					row.setForeground(getOutOfRangeForeground());
 				}
@@ -213,7 +213,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 		return stats;
 	}
 
-	private void setForeground(Metric metric, TableTreeItem row) {
+	private void setForeground(Metric metric, TreeItem row) {
 		if (metric == null) {
 			row.setForeground(getDefaultForeground());
 		} else {
@@ -225,30 +225,30 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 
 	/**
 	 * create a new root row
-	 * 
+	 *
 	 * @return
 	 */
-	private TableTreeItem createNewRow() {
-		TableTreeItem item = new TableTreeItem(this, SWT.NONE);
+	private TreeItem createNewRow() {
+		TreeItem item = new TreeItem(this, SWT.NONE);
 		item.setForeground(getDefaultForeground());
 		return item;
 	}
 
 	/**
 	 * create a new child row
-	 * 
+	 *
 	 * @param parent
 	 * @return
 	 */
-	private TableTreeItem createNewRow(TableTreeItem parent) {
-		TableTreeItem item = new TableTreeItem(parent, SWT.NONE);
+	private TreeItem createNewRow(TreeItem parent) {
+		TreeItem item = new TreeItem(parent, SWT.NONE);
 		item.setForeground(getDefaultForeground());
 		return item;
 	}
 
 	/**
 	 * Get the default color (for metrics without a max and within range)
-	 * 
+	 *
 	 * @return
 	 */
 	private Color getDefaultForeground() {
@@ -264,7 +264,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 
 	/**
 	 * Get the in range color (for metrics with a max and within range)
-	 * 
+	 *
 	 * @return
 	 */
 	private Color getInRangeForeground() {
@@ -280,7 +280,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 
 	/**
 	 * Get the out of range color (for metrics with a max and out of range)
-	 * 
+	 *
 	 * @return
 	 */
 	private Color getOutOfRangeForeground() {
@@ -297,9 +297,9 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 	/**
 	 * first time simply adds a dummy child if there should be any children. When such a dummy child is already rpesent, replaces it with the real children. This spreads the work load across expansion events instead of constructing the
 	 * entire tree up front, which could be very time consuming in large projects.
-	 * 
+	 *
 	 * @param row
-	 *            parent TableTreeItem
+	 *            parent TreeItem
 	 * @param ms
 	 *            AbstractMetricSource containing the metrics
 	 * @param metric
@@ -307,7 +307,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 	 * @param per
 	 *            name of the avg/max type
 	 */
-	private void addChildren(TableTreeItem row, AbstractMetricSource ms, String metric, String per) {
+	private void addChildren(TreeItem row, AbstractMetricSource ms, String metric, String per) {
 		AbstractMetricSource[] children = ms.getChildrenHaving(per, metric);
 		// don't have to do anything if there are no child metrics
 		if ((children != null) && (children.length > 0)) {
@@ -317,7 +317,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 				row.getItems()[0].dispose();
 				sort(children, metric, per);
 				for (AbstractMetricSource element : children) {
-					TableTreeItem child = createNewRow(row);
+					TreeItem child = createNewRow(row);
 					child.setText(getElementName(element.getJavaElement()));
 					Metric val = element.getValue(metric);
 					child.setText(1, (val != null) ? format(val.doubleValue()) : "");
@@ -344,7 +344,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 					addChildren(child, element, metric, per);
 				}
 			} else { // add dummy
-				/* TableTreeItem child = */createNewRow(row);
+				/* TreeItem child = */createNewRow(row);
 				row.setData("metric", metric);
 				row.setData("per", per);
 				row.setData("source", ms);
@@ -369,7 +369,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 
 	/**
 	 * Sort the metrics in descending max/value order, giving preference to max over value (if max exists, use it, otherwise use value)
-	 * 
+	 *
 	 * @param children
 	 * @param metric
 	 * @param per
@@ -378,7 +378,8 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 	private void sort(AbstractMetricSource[] children, final String metric, final String per) {
 		Comparator<AbstractMetricSource> c = new Comparator<AbstractMetricSource>() {
 
-			public int compare(AbstractMetricSource o1, AbstractMetricSource o2) {
+			@Override
+            public int compare(AbstractMetricSource o1, AbstractMetricSource o2) {
 				Max max1 = o1.getMaximum(metric, per);
 				Max max2 = o2.getMaximum(metric, per);
 				if ((max1 != null) && (max2 != null)) {
@@ -405,7 +406,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 	}
 
 	/*
-	 * private void setText(TableTreeItem row, String[] columns) { row.setText(columns[0]); for (int i = 1; i < columns.length; i++) { row.setText(i, columns[i]); } }
+	 * private void setText(TreeItem row, String[] columns) { row.setText(columns[0]); for (int i = 1; i < columns.length; i++) { row.setText(i, columns[i]); } }
 	 */
 
 	/**
@@ -426,7 +427,7 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 
 	/**
 	 * Method getCompilationUnit.
-	 * 
+	 *
 	 * @param source
 	 * @return Object
 	 */
@@ -454,16 +455,18 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 	protected void checkSubclass() {
 	}
 
-	public void widgetSelected(SelectionEvent e) {
+	@Override
+    public void widgetSelected(SelectionEvent e) {
 	}
 
 	/**
 	 * react to double-clicks in the table by opening an editor on the resource for the metric
-	 * 
+	 *
 	 * @see org.eclipse.swt.events.SelectionListener#widgetDefaultSelected(SelectionEvent)
 	 */
-	public void widgetDefaultSelected(SelectionEvent e) {
-		TableTreeItem row = (TableTreeItem) e.item;
+	@Override
+    public void widgetDefaultSelected(SelectionEvent e) {
+		TreeItem row = (TreeItem) e.item;
 		IJavaElement element = (IJavaElement) row.getData("element");
 		String handle = (String) row.getData("handle");
 		try {
@@ -508,17 +511,19 @@ public class LayeredPackageTable extends TableTree implements Constants, Selecti
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.eclipse.swt.events.TreeListener#treeCollapsed(org.eclipse.swt.events .TreeEvent)
 	 */
-	public void treeCollapsed(TreeEvent e) {
+	@Override
+    public void treeCollapsed(TreeEvent e) {
 	}
 
 	/**
 	 * replaces dummy child nodes with the real children if needed
 	 */
-	public void treeExpanded(TreeEvent e) {
-		TableTreeItem item = (TableTreeItem) e.item;
+	@Override
+    public void treeExpanded(TreeEvent e) {
+		TreeItem item = (TreeItem) e.item;
 		if (item.getData("source") != null) {
 			AbstractMetricSource source = (AbstractMetricSource) item.getData("source");
 			String metric = (String) item.getData("metric");

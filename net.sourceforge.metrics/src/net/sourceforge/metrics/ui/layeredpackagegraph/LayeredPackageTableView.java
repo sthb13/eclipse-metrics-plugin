@@ -13,6 +13,43 @@
  */
 package net.sourceforge.metrics.ui.layeredpackagegraph;
 
+import org.eclipse.core.runtime.IPath;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.dialogs.ProgressMonitorDialog;
+import org.eclipse.jface.operation.IRunnableWithProgress;
+import org.eclipse.jface.util.IPropertyChangeListener;
+import org.eclipse.jface.util.PropertyChangeEvent;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StackLayout;
+import org.eclipse.swt.events.ArmListener;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.graphics.Cursor;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.ProgressBar;
+import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.TreeItem;
+import org.eclipse.ui.IActionBars;
+import org.eclipse.ui.IMemento;
+import org.eclipse.ui.ISelectionListener;
+import org.eclipse.ui.IViewSite;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchPart;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.part.ViewPart;
+
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -28,46 +65,9 @@ import net.sourceforge.metrics.core.sources.AbstractMetricSource;
 import net.sourceforge.metrics.core.sources.Dispatcher;
 import net.sourceforge.metrics.core.sources.IGraphContributor;
 
-import org.eclipse.core.runtime.IPath;
-import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.jdt.core.IJavaElement;
-import org.eclipse.jdt.core.IJavaProject;
-import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.dialogs.ProgressMonitorDialog;
-import org.eclipse.jface.operation.IRunnableWithProgress;
-import org.eclipse.jface.util.IPropertyChangeListener;
-import org.eclipse.jface.util.PropertyChangeEvent;
-import org.eclipse.jface.viewers.ISelection;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.StackLayout;
-import org.eclipse.swt.custom.TableTreeItem;
-import org.eclipse.swt.events.ArmListener;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
-import org.eclipse.swt.graphics.Cursor;
-import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.ProgressBar;
-import org.eclipse.swt.widgets.Shell;
-import org.eclipse.ui.IActionBars;
-import org.eclipse.ui.IMemento;
-import org.eclipse.ui.ISelectionListener;
-import org.eclipse.ui.IViewSite;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.IWorkbenchPart;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.part.ViewPart;
-
 /**
  * View that renders the metrica in a table and reacts to selection events and resource change events from the environment
- * 
+ *
  * @author Frank Sauer
  */
 public class LayeredPackageTableView extends ViewPart implements ISelectionListener, IMetricsProgressListener, IPropertyChangeListener {
@@ -160,14 +160,16 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 		table.initWidths(memento);
 		table.addSelectionListener(new SelectionListener() {
 
-			public void widgetSelected(SelectionEvent e) {
-				TableTreeItem item = (TableTreeItem) e.item;
+			@Override
+            public void widgetSelected(SelectionEvent e) {
+				TreeItem item = (TreeItem) e.item;
 				if (item != null) {
 					supplementTitle(item);
 				}
 			}
 
-			public void widgetDefaultSelected(SelectionEvent e) {
+			@Override
+            public void widgetDefaultSelected(SelectionEvent e) {
 			}
 		});
 	}
@@ -184,12 +186,12 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/**
 	 * Add the metric desciption to the titlebar
-	 * 
+	 *
 	 * @param item
 	 */
-	private void supplementTitle(TableTreeItem item) {
+	private void supplementTitle(TreeItem item) {
 		StringBuffer b = getTitlePrefix(selection);
-		TableTreeItem root = item; // fix submitted by Jacob Eckel 5/27/03
+		TreeItem root = item; // fix submitted by Jacob Eckel 5/27/03
 		while (root.getParentItem() != null) {
 			root = root.getParentItem();
 		}
@@ -232,7 +234,8 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 	private void setStatus(final String title, final boolean busy) {
 		final Display display = Display.getDefault();
 		display.asyncExec(new Runnable() {
-			public void run() {
+			@Override
+            public void run() {
 				if (table.isDisposed()) {
 					return;
 				}
@@ -252,7 +255,8 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 	private void refreshTable(final AbstractMetricSource ms, final IJavaElement selection) {
 		final Display display = Display.getDefault();
 		display.asyncExec(new Runnable() {
-			public void run() {
+			@Override
+            public void run() {
 				if (!table.isDisposed()) {
 					table.setMetrics(ms);
 					table.setCursor(getNormalCursor(table.getDisplay()));
@@ -285,10 +289,11 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/**
 	 * react to selections elsewhere in the workbench
-	 * 
+	 *
 	 * @see org.eclipse.ui.ISelectionListener#selectionChanged(org.eclipse.ui.IWorkbenchPart, org.eclipse.jface.viewers.ISelection)
 	 */
-	public void selectionChanged(IWorkbenchPart part, ISelection selection) {
+	@Override
+    public void selectionChanged(IWorkbenchPart part, ISelection selection) {
 		if (selection instanceof IStructuredSelection) {
 			Object first = ((IStructuredSelection) selection).getFirstElement();
 			if (first instanceof IJavaElement) {
@@ -349,7 +354,7 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/**
 	 * Returns the selection.
-	 * 
+	 *
 	 * @return IJavaElement
 	 */
 	public IJavaElement getSelection() {
@@ -370,12 +375,13 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 	}
 
 	/**
-     *  
+     *
      */
 	private void showExplanationPage() {
 		Display.getDefault().asyncExec(new Runnable() {
 
-			public void run() {
+			@Override
+            public void run() {
 				pageSelector.topControl = explanationPage;
 				cards.layout();
 				mActions.disable();
@@ -384,12 +390,13 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 	}
 
 	/**
-     *  
+     *
      */
 	private void showTablePage() {
 		Display.getDefault().asyncExec(new Runnable() {
 
-			public void run() {
+			@Override
+            public void run() {
 				pageSelector.topControl = tablePage;
 				cards.layout();
 				mActions.enable();
@@ -431,7 +438,7 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 	 */
 
 	/**
-     *  
+     *
      */
 	private static void fireArmEvent() {
 		if (armListener != null) {
@@ -468,7 +475,8 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 			IRunnableWithProgress op = new IRunnableWithProgress() {
 
-				public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+				@Override
+                public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
 					exporter.export(selection, outputFile, monitor);
 				}
 			};
@@ -482,7 +490,7 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.eclipse.ui.IViewPart#init(org.eclipse.ui.IViewSite, org.eclipse.ui.IMemento)
 	 */
 	@Override
@@ -495,7 +503,7 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.eclipse.ui.IViewPart#saveState(org.eclipse.ui.IMemento)
 	 */
 	@Override
@@ -508,10 +516,11 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.eclipse.jface.util.IPropertyChangeListener#propertyChange(org.eclipse .jface.util.PropertyChangeEvent)
 	 */
-	public void propertyChange(PropertyChangeEvent event) {
+	@Override
+    public void propertyChange(PropertyChangeEvent event) {
 		if (selection != null) {
 			setJavaElement(selection, true);
 		}
@@ -526,10 +535,11 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see net.sourceforge.metrics.core.MetricsBuilder.MetricsProgressListener#pending (java.lang.String)
 	 */
-	public void pending(IJavaElement current) {
+	@Override
+    public void pending(IJavaElement current) {
 		setStatus("Queued: " + queued + "\tCalculating now: " + current.getElementName(), shouldBeBusy(current));
 	}
 
@@ -543,7 +553,8 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 		Display d = Display.getDefault();
 		d.asyncExec(new Runnable() {
 
-			public void run() {
+			@Override
+            public void run() {
 				progressBar.setMaximum(0);
 				progressBar.setSelection(0);
 				mActions.enable();
@@ -555,7 +566,8 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 		Display d = Display.getDefault();
 		d.asyncExec(new Runnable() {
 
-			public void run() {
+			@Override
+            public void run() {
 				if (!progressBar.isDisposed()) {
 					progressBar.setSelection(progressBar.getSelection() + 1);
 				}
@@ -567,7 +579,8 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 		Display d = Display.getDefault();
 		d.asyncExec(new Runnable() {
 
-			public void run() {
+			@Override
+            public void run() {
 				progressBar.setMaximum(queued);
 				mActions.disable();
 			}
@@ -576,10 +589,11 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see net.sourceforge.metrics.core.MetricsBuilder.MetricsProgressListener#completed (java.lang.String)
 	 */
-	public void completed(IJavaElement element, Object data) {
+	@Override
+    public void completed(IJavaElement element, Object data) {
 		setStatus("completed " + element.getElementName(), shouldBeBusy(element));
 		if ((selection != null) && (selection.equals(element))) {
 			AbstractMetricSource ms = (AbstractMetricSource) data;
@@ -589,12 +603,14 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 		incProgressBar();
 	}
 
-	public void queued(int count) {
+	@Override
+    public void queued(int count) {
 		queued += count;
 		addWorkToProgressBar();
 	}
 
-	public void projectComplete(IJavaProject project, boolean aborted) {
+	@Override
+    public void projectComplete(IJavaProject project, boolean aborted) {
 		// Log.logMessage("Got projectComplete event.");
 		queued = 0;
 		setStatus("", false);
@@ -609,10 +625,11 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see net.sourceforge.metrics.core.MetricsBuilder.MetricsProgressListener#moved (java.lang.String, org.eclipse.core.runtime.IPath)
 	 */
-	public void moved(IJavaElement element, IPath fromPath) {
+	@Override
+    public void moved(IJavaElement element, IPath fromPath) {
 		if ((selection != null) && (selection.getPath().equals(fromPath))) {
 			// this causes the view to refresh with new element when it
 			// completes
@@ -622,10 +639,11 @@ public class LayeredPackageTableView extends ViewPart implements ISelectionListe
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see net.sourceforge.metrics.builder.IMetricsProgressListener#paused()
 	 */
-	public void paused() {
+	@Override
+    public void paused() {
 		setStatus("Paused. " + queued + " items in the queue.", false);
 	}
 
