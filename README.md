@@ -8,7 +8,7 @@ This is a continuation of the Eclipse Metrics Plugin 2, which was first created 
 Check http://metrics2.sourceforge.net/ to see 
 
 ## update site:
-* https://github.com/qxo/eclipse-metrics-plugin/raw/master/updatesite/
+* https://github.com/sthb13/eclipse-metrics-plugin/raw/master/updatesite/
 
 ## Compile Guide
 *. import projects (net.sourceforge.metrics,net.sourceforge.metrics.feature) to eclipse workspace
