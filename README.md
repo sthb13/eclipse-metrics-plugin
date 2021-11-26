@@ -10,7 +10,7 @@ Check http://metrics2.sourceforge.net/ to see
 ## update site:
 * https://github.com/sthb13/eclipse-metrics-plugin/raw/master/updatesite/
 
-## Compile Guide
+## Compile Guide:
 *. import projects (net.sourceforge.metrics,net.sourceforge.metrics.feature) to eclipse workspace
 *. change some code if you need
 *. export updatesite archive zip: select project==> export ==> Plugin-in Development==> Deployable feature => select feature "net.sourceforge.metrics"  and Archive file loation  ==> Finish 
